@@ -1,6 +1,3 @@
-#	pip install flask flask-socketio eventlet
-#	pip install flask websockets asyncio
-
 import eventlet
 eventlet.monkey_patch()
 
