@@ -1,6 +1,6 @@
 # wearOS_server
 
-install below before running server
+install before running server
 
 pip install flask flask-socketio eventlet
 
