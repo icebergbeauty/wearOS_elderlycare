@@ -3,7 +3,7 @@ eventlet.monkey_patch()
 
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO, emit
-import json,base64
+import json,base64,os
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -22,11 +22,13 @@ def handle_register(data):
         if device_id:
             connected_devices[request.sid] = device_id
             print(f"✅ 已註冊 device ID：{device_id} (SID: {request.sid})")
-
-            # 發送指令"startRecording"給剛註冊的裝置
-            socketio.emit('command', {'command': "startRecording"}, room=request.sid)
-            print(f"已發送指令 startRecording 給 {device_id}")
-
+            
+            # 偵測跌倒
+            fall = 1
+            if fall == 1:
+                print(f"🚨 偵測到跌倒！觸發處理流程 for {device_id}")
+                fall_triggered(device_id)
+		
         else:
             print("register 中沒有 deviceId")
     except Exception as e:
@@ -83,6 +85,40 @@ def ping():
     print("ping 收到")
     return "pong"
 '''
+# 🆕 專門處理跌倒事件觸發的函式
+def fall_triggered(device_id):
+    # 找出對應的 sid
+    target_sid = None
+    for sid, dev_id in connected_devices.items():
+        if dev_id == device_id:
+            target_sid = sid
+            break
+
+    if not target_sid:
+        print(f"❌ 找不到 {device_id} 對應的 SID，無法發送命令")
+        return
+
+    # 傳送 fallcare.3gp 音檔
+    audio_path = "fallcare.3gp"
+    if os.path.exists(audio_path):
+        with open(audio_path, "rb") as f:
+            audio_bytes = f.read()
+            audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
+
+        socketio.emit('audio_message', {
+            'format': '3gp',
+            'audioData': audio_base64
+        }, room=target_sid)
+
+        print(f"📤 已發送音訊 fallcare.3gp 給 {device_id}")
+    else:
+        print("⚠️ 無法發送音訊：找不到 fallcare.3gp")
+    
+    # 發送指令 startRecording
+    socketio.emit('command', {'command': "startRecording"}, room=target_sid)
+    print(f"📡 已發送指令 startRecording 給 {device_id}")
+
+
 #透過 socket.io來接收音檔，格式是Base64 字串
 @socketio.on('upload_audio')
 def handle_upload_audio(data):
@@ -117,20 +153,8 @@ def handle_sensor_data(data):
         return  # 或者你可以暫存資料、丟警告等
     device_id = connected_devices[sid]
     print(f"收到來自 {device_id} 的感測資料: {data}")
-
-
-'''
-原始:透過 HTTP POST (@app.route('/upload', methods=['POST'])) 來接收資料
-# 上傳資料路由
-@app.route('/upload', methods=['POST'])
-def upload():
-    data = request.get_json()
-    if data:
-        print("📦 收到資料：", data)
-        return jsonify({"status": "success", "message": "資料已接收"}), 200
-    else:
-        return jsonify({"status": "error", "message": "未收到有效 JSON"}), 400
-'''
+    
+    
 
 if __name__ == "__main__":
     # 用 socketio 啟動
