@@ -47,44 +47,7 @@ def handle_disconnect():
     
 
 
-'''
-debug 用: 手動從伺服器發送其他指令
-# REST API: 傳送指令給指定裝置
-@app.route("/send_command", methods=["POST"])
-def send_command():
-    data = request.get_json()
-    print("REST /send_command 收到:", data)  # <-- 加這行看有沒有進來
-    device_id = data.get("deviceId")
-    command = data.get("command")
-    if not device_id or not command:
-        return jsonify({"status": "error", "message": "缺少 deviceId 或 command"}), 400
 
-    # 找到對應 sid 的 client
-    sid = None
-    for k, v in connected_devices.items():
-        if v == device_id:
-            sid = k
-            break
-    if not sid:
-        return jsonify({"status": "error", "message": "裝置未連線"}), 404
-
-    socketio.emit('command', {'command': command}, room=sid) #發送指令的格式
-    return jsonify({"status": "success", "message": f"已發送指令 {command} 給 {device_id}"}), 200
-'''
-    
-'''
-手動從伺服器發送指令格式
-curl -v -X POST http://localhost:5000/send_command   -H "Content-Type: application/json"   -d '{"deviceId":"9b7683fd6b6e686a","command":"startRecording"}'
-
-'''
-
-'''
-test: whether ngrok is working
-@app.route("/ping")
-def ping():
-    print("ping 收到")
-    return "pong"
-'''
 # 🆕 專門處理跌倒事件觸發的函式
 def fall_triggered(device_id):
     # 找出對應的 sid
